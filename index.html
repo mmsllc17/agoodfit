@@ -1,0 +1,173 @@
+<title>A Good Fit Test Build</title>
+<meta name="theme-color" content="#F4EFE7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="A Good Fit">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&display=swap">
+<style>
+:root{--bg:#F4EFE7;--ink:#31391B;--muted:#6E6A5C;--olive:#6B7F3C}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Inter Tight",system-ui,sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent}
+#stage{position:fixed;inset:0;display:flex;align-items:flex-start;justify-content:center;overflow:hidden;background:var(--bg);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+#frame{width:402px;height:874px;transform-origin:top center;position:relative;flex-shrink:0}
+#frame > div > div:first-child{border-radius:0!important}
+body.desk #stage{align-items:center;background:#E7E1D6}
+body.desk #frame > div > div:first-child{border-radius:48px!important;box-shadow:0 30px 80px rgba(49,57,27,.25)}
+#loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font:600 15px "Inter Tight",sans-serif;color:var(--muted)}
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#fff;font:600 14px "Inter Tight",sans-serif;padding:11px 16px;border-radius:100px;opacity:0;pointer-events:none;transition:opacity .25s;max-width:calc(100% - 32px);text-align:center;z-index:999}
+#toast.on{opacity:1}
+#menu{position:fixed;right:max(10px,env(safe-area-inset-right,0px));top:calc(10px + env(safe-area-inset-top,0px));z-index:998;display:none}
+body.desk #menu{display:block}
+#menu button{height:40px;padding:0 14px;border-radius:100px;border:1px solid #D9D4C8;background:#fff;color:var(--ink);font:600 13px "Inter Tight",sans-serif;cursor:pointer}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+<div id="stage"><div id="frame"><div id="root"></div></div></div>
+<div id="loading">Loading A Good Fit…</div>
+<div id="toast" role="status"></div>
+<div id="menu"><button type="button" id="restart">Restart from Splash</button></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script>
+(function(){
+const h = React.createElement;
+const START = 'Main';
+const DESKTOP_ONLY = /^Biz-/;
+const cache = {};
+let currentHelmet = [];
+const toastEl = document.getElementById('toast');
+let toastTimer;
+function toast(msg){ toastEl.textContent = msg; toastEl.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('on'), 2600); }
+
+// ---------- fit the 402 x 874 screen to the device ----------
+function fit(){
+  const frame = document.getElementById('frame');
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const desk = vw > 700;
+  document.body.classList.toggle('desk', desk);
+  const s = desk ? Math.min((vh - 40) / 874, 1) : Math.min(vw / 402, vh / 874);
+  frame.style.transform = 'scale(' + s + ')';
+  frame.style.marginTop = desk ? '0px' : '0px';
+}
+window.addEventListener('resize', fit); fit();
+
+// ---------- the DC logic base ----------
+class DCLogic {
+  constructor(props){ this.props = props || {}; this.state = {}; }
+  setState(patch){ const p = typeof patch === 'function' ? patch(this.state, this.props) : patch; this.state = Object.assign({}, this.state, p); if (this.__rerender) this.__rerender(); }
+  forceUpdate(){ if (this.__rerender) this.__rerender(); }
+}
+
+// ---------- load and parse a screen ----------
+async function load(name){
+  if (cache[name]) return cache[name];
+  const res = await fetch('screens/' + name + '.dc.html');
+  if (!res.ok) throw new Error('missing ' + name);
+  const src = await res.text();
+  const xdc = src.slice(src.indexOf('<x-dc>') + 6, src.indexOf('</x-dc>'));
+  const doc = new DOMParser().parseFromString('<!doctype html><html><body>' + xdc + '</body></html>', 'text/html');
+  const helmet = doc.body.querySelector('helmet');
+  const heads = [];
+  if (helmet) { helmet.querySelectorAll('link,style').forEach(n => heads.push(n.cloneNode(true))); helmet.remove(); }
+  const m = /<script type="text\/x-dc" data-dc-script data-props='([\s\S]*?)'>([\s\S]*?)<\/script>/.exec(src);
+  const propsDef = m ? JSON.parse(m[1]) : {};
+  const defaults = {};
+  Object.keys(propsDef).forEach(k => { if (k[0] !== '$' && propsDef[k] && 'default' in propsDef[k]) defaults[k] = propsDef[k].default; });
+  const Comp = m ? new Function('DCLogic', 'claude', m[2] + '\n;return Component;')(DCLogic, {}) : class extends DCLogic { renderVals(){ return {}; } };
+  const tpl = Array.from(doc.body.childNodes);
+  return (cache[name] = { tpl, heads, defaults, Comp });
+}
+
+// ---------- template to React ----------
+const EVENTS = { onclick:'onClick', onchange:'onChange', oninput:'onInput', onscroll:'onScroll', onkeydown:'onKeyDown', onkeyup:'onKeyUp', onsubmit:'onSubmit', onfocus:'onFocus', onblur:'onBlur', onmouseenter:'onMouseEnter', onmouseleave:'onMouseLeave', onpointerdown:'onPointerDown' };
+const RENAME = { class:'className', for:'htmlFor', tabindex:'tabIndex', readonly:'readOnly', maxlength:'maxLength', autocomplete:'autoComplete', autofocus:'autoFocus', colspan:'colSpan', rowspan:'rowSpan', crossorigin:'crossOrigin', srcset:'srcSet', spellcheck:'spellCheck', inputmode:'inputMode', enterkeyhint:'enterKeyHint', 'xlink:href':'xlinkHref' };
+const HOLE = /\{\{\s*([^}]*?)\s*\}\}/g;
+function lookup(scope, path){
+  path = path.trim();
+  if (path === 'true') return true; if (path === 'false') return false;
+  if (/^-?\d+(\.\d+)?$/.test(path)) return Number(path);
+  let v = scope; for (const part of path.split('.')) { if (v == null) return undefined; v = v[part]; } return v;
+}
+function interp(str, scope){
+  const whole = /^\s*\{\{\s*([^}]*?)\s*\}\}\s*$/.exec(str);
+  if (whole) return lookup(scope, whole[1]);
+  return str.replace(HOLE, (_, p) => { const v = lookup(scope, p); return v == null ? '' : String(v); });
+}
+const styleEl = document.createElement('div');
+function toStyle(css){
+  styleEl.style.cssText = css; const o = {};
+  for (let i = 0; i < styleEl.style.length; i++) {
+    const prop = styleEl.style[i]; const val = styleEl.style.getPropertyValue(prop) + (styleEl.style.getPropertyPriority(prop) ? ' !important' : '');
+    o[prop.startsWith('--') ? prop : prop.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = val;
+  }
+  return o;
+}
+function camel(name){ return name.replace(/-([a-z])/g, (_, c) => c.toUpperCase()); }
+let keySeq = 0;
+function render(node, scope, nav, key){
+  if (node.nodeType === 3) { const t = node.nodeValue; return t.indexOf('{{') >= 0 ? interp(t, scope) : t; }
+  if (node.nodeType !== 1) return null;
+  const tag = node.tagName.toLowerCase();
+  if (tag === 'sc-if') { const v = interp(node.getAttribute('value') || '', scope); return v ? kids(node, scope, nav) : null; }
+  if (tag === 'sc-for') {
+    const list = interp(node.getAttribute('list') || '', scope) || []; const as = node.getAttribute('as') || 'item';
+    return h(React.Fragment, { key }, list.map((item, i) => h(React.Fragment, { key: i }, kids(node, Object.assign(Object.create(scope), { [as]: item, $index: i }), nav))));
+  }
+  const isSvg = node.namespaceURI === 'http://www.w3.org/2000/svg';
+  const props = { key };
+  for (const a of Array.from(node.attributes)) {
+    let name = a.name, raw = a.value;
+    if (name.startsWith('hint-placeholder')) continue;
+    const val = raw.indexOf('{{') >= 0 ? interp(raw, scope) : raw;
+    const lower = name.toLowerCase();
+    if (EVENTS[lower]) { if (typeof val === 'function') props[EVENTS[lower]] = val; continue; }
+    if (lower === 'style') { props.style = toStyle(String(val)); continue; }
+    if (RENAME[lower]) { props[RENAME[lower]] = val; continue; }
+    if (lower === 'value') { if (tag === 'select' || tag === 'input' || tag === 'textarea') { props.value = val == null ? '' : val; continue; } }
+    if (lower === 'disabled' || lower === 'checked' || lower === 'selected' || lower === 'hidden') { props[lower] = val === '' || val === true || val === 'true' || val === lower; continue; }
+    if (isSvg && !lower.startsWith('aria-') && !lower.startsWith('data-') && name.indexOf('-') > 0) name = camel(name);
+    props[name] = val;
+  }
+  if ((tag === 'input' || tag === 'textarea' || tag === 'select') && 'value' in props && !props.onChange) props.readOnly = true;
+  if (tag === 'textarea' && !('value' in props)) props.defaultValue = node.textContent;
+  if (tag === 'a') {
+    const href = node.getAttribute('href') || '';
+    const user = props.onClick;
+    props.onClick = (e) => { if (user) user(e); const m = /([A-Za-z0-9-]+)\.dc\.html$/.exec(href); e.preventDefault(); if (m) nav(m[1]); };
+    props.href = '#';
+  }
+  if (tag === 'textarea' || tag === 'select') {
+    const c = tag === 'select' ? kids(node, scope, nav) : null;
+    return h(tag, props, c);
+  }
+  if (tag === 'style') return h('style', props, node.textContent);
+  return h(tag, props, kids(node, scope, nav));
+}
+function kids(node, scope, nav){ const out = []; Array.from(node.childNodes).forEach((c, i) => { const r = render(c, scope, nav, i); if (r !== null && r !== '') out.push(r); }); return out.length ? out : null; }
+
+// ---------- the screen host ----------
+class Screen extends React.Component {
+  constructor(p){ super(p); const s = p.screen; this.logic = new s.Comp(Object.assign({}, s.defaults)); if (!this.logic.state) this.logic.state = {}; this.logic.__rerender = () => this.forceUpdate(); }
+  componentDidMount(){ if (this.logic.componentDidMount) this.logic.componentDidMount(); }
+  componentWillUnmount(){ this.logic.__rerender = null; if (this.logic.componentWillUnmount) this.logic.componentWillUnmount(); }
+  render(){ let vals = {}; try { vals = this.logic.renderVals() || {}; } catch (e) { console.error(e); } return h(React.Fragment, null, this.props.screen.tpl.map((n, i) => render(n, vals, this.props.nav, i))); }
+}
+const root = ReactDOM.createRoot(document.getElementById('root'));
+let current = null, skipHash = null;
+async function show(name, push){
+  if (DESKTOP_ONLY.test(name)) { toast('The business portal is a desktop site. Open it on a laptop.'); return; }
+  let s;
+  try { s = await load(name); } catch (e) { toast('That screen isn’t in the test build yet.'); return; }
+  document.getElementById('loading').style.display = 'none';
+  currentHelmet.forEach(n => n.remove());
+  currentHelmet = s.heads.map(n => { const c = n.cloneNode(true); document.head.appendChild(c); return c; });
+  current = name;
+  if (push && location.hash !== '#' + name) { skipHash = name; location.hash = name; }
+  root.render(h(Screen, { key: name + ':' + (++keySeq), screen: s, nav: (n) => show(n, true) }));
+  window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', () => { const n = (location.hash || '').slice(1) || START; if (n === skipHash) { skipHash = null; return; } if (n !== current) show(n, false); });
+document.getElementById('restart').addEventListener('click', () => show(START, true));
+const first = (location.hash || '').slice(1);
+show(/^[A-Za-z0-9-]+$/.test(first) ? first : START, false);
+})();
+</script>
