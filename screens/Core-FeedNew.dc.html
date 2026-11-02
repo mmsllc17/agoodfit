@@ -30,7 +30,7 @@ a{color:#4E5E2B}a:hover{color:#31391B}
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":402,"height":874}}'>
 class Component extends DCLogic {
-state = { tab: 0, join: [false, false, false], rsvp: false, wave: [false, false], introOpen: false, introDraft: '', introText: '', hidden: false };
+state = { tab: 0, join: (() => { try { const a = JSON.parse(localStorage.getItem('agf.clubs') || '[]'); return ['gc', 'pr', 'by'].map((id) => a.includes(id)); } catch (e) { return [false, false, false]; } })(), rsvp: false, wave: [false, false], introOpen: false, introDraft: '', introText: '', hidden: false };
 renderVals() {
 const s = this.state;
 const done = [true, true, s.join.some((x) => x), s.rsvp, !!s.introText, false];
@@ -41,7 +41,7 @@ cl: { n: n, pct: (n / 6 * 100) + '%', show: !s.hidden, collapsed: s.hidden && !a
 ['Following', 'Club', 'My Activity'].forEach((t, k) => { const on = s.tab === k; v['tb' + k] = { sel: on ? 'true' : 'false', go: () => this.setState({ tab: k }), bg: on ? '#6B7F3C' : '#FFFFFF', border: on ? '#6B7F3C' : '#E2DDD1', fg: on ? '#FFFFFF' : '#6E6A5C' }; });
 done.forEach((d, i) => { v['st' + i] = { todo: !d, ring: d ? '#6B7F3C' : '#CFC9BA', bg: d ? '#EEF2E2' : '#FFFFFF', fg: d ? '#6E6A5C' : '#31391B', strike: d ? 'line-through' : 'none', check: d ? '#4E5E2B' : 'transparent' }; });
 const btn = (on, off, onL) => ({ pressed: on ? 'true' : 'false', bg: on ? '#EEF2E2' : '#6B7F3C', fg: on ? '#4E5E2B' : '#FFFFFF', label: on ? onL : off });
-for (let k = 0; k < 3; k++) v['join' + k] = Object.assign(btn(s.join[k], 'Join', 'Joined'), { toggle: () => { const j = s.join.slice(); j[k] = !j[k]; this.setState({ join: j }); } });
+for (let k = 0; k < 3; k++) v['join' + k] = Object.assign(btn(s.join[k], 'Join', 'Joined'), { toggle: () => { const j = s.join.slice(); j[k] = !j[k]; this.setState({ join: j }); try { localStorage.setItem('agf.clubs', JSON.stringify(['gc', 'pr', 'by'].filter((id, n) => j[n]))); } catch (e) {} } });
 v.rsvpBtn = Object.assign(btn(s.rsvp, 'RSVP', 'You’re going'), { toggle: () => this.setState({ rsvp: !s.rsvp }) });
 for (let k = 0; k < 2; k++) { const on = s.wave[k]; v['wave' + k] = { bg: on ? '#EEF2E2' : '#FFFFFF', fg: on ? '#4E5E2B' : '#31391B', label: on ? 'Waved' : 'Say hi', toggle: () => { const w = s.wave.slice(); w[k] = !w[k]; this.setState({ wave: w }); } }; }
 const ok = s.introDraft.trim().length > 0;
