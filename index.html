@@ -60,7 +60,7 @@ class DCLogic {
 // ---------- load and parse a screen ----------
 async function load(name){
   if (cache[name]) return cache[name];
-  const res = await fetch('screens/' + name + '.dc.html');
+  const res = await fetch('screens/' + name + '.dc.html', { cache: 'no-cache' });
   if (!res.ok) throw new Error('missing ' + name);
   const src = await res.text();
   const xdc = src.slice(src.indexOf('<x-dc>') + 6, src.indexOf('</x-dc>'));
