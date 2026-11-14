@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Avatar, Button, Card, Empty, Field, Modal, Notice, PageHead, Stat, StatusBadge } from '../components/ui';
+import { Avatar, Button, Card, Empty, Field, LinkButton, Modal, Notice, PageHead, Stat, StatusBadge } from '../components/ui';
 import { approveEvent, offboardAccount, reactivateAccount, sendBackEvent, setViewAs, useAccount, useStore, verifyAccount } from '../store';
 import { go } from '../router';
 import { fmtLong, fmtShort, fmtWhen, money, num, PARTNER_MONTHLY, pkgInfo } from '../lib';
@@ -278,6 +278,9 @@ export function PartnerDetail({ id }: { id: string }) {
                 Verify business
               </Button>
             )}
+            <LinkButton href={`#/analytics?view=${a.id}`} kind="ghost" icon="chart">
+              Analytics
+            </LinkButton>
             {!off && (
               <Button
                 kind="outline"

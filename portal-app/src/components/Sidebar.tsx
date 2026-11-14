@@ -26,7 +26,12 @@ export function Sidebar({ path }: { path: string }) {
 
   const items: Item[] = [
     { href: '#/overview', label: 'Overview', icon: 'overview', match: ['/overview'] },
-    ...(isAdmin ? [{ href: '#/partners', label: 'Partners', icon: 'store' as IconName, count: partnerQueue, match: ['/partners'] }] : []),
+    ...(isAdmin
+      ? [
+          { href: '#/partners', label: 'Partners', icon: 'store' as IconName, count: partnerQueue, match: ['/partners'] },
+          { href: '#/analytics', label: 'Analytics', icon: 'chart' as IconName, match: ['/analytics'] },
+        ]
+      : []),
     { href: '#/events', label: 'Events', icon: 'calendar', match: ['/events'] },
     { href: '#/feature', label: 'Feature an event', icon: 'star', match: ['/feature'] },
     { href: '#/club', label: 'Club', icon: 'flag', match: ['/club'] },

@@ -14,6 +14,7 @@ import { Team } from './pages/Team';
 import { Billing } from './pages/Billing';
 import { Settings } from './pages/Settings';
 import { PartnerDetail, Partners } from './pages/Partners';
+import { Analytics } from './pages/Analytics';
 import { Discontinued } from './pages/Auth';
 
 function Page({ path }: { path: string }) {
@@ -29,6 +30,7 @@ function Page({ path }: { path: string }) {
   if (p === '/club/new') return <ClubEventForm />;
   if ((m = match('/club/edit/:id', p))) return <ClubEventForm id={m.id} />;
   if (p === '/partners') return <Partners />;
+  if (p === '/analytics') return <Analytics query={query} />;
   if ((m = match('/partners/:id', p))) return <PartnerDetail id={m.id} />;
   if (p === '/suggestions') return <Suggestions />;
   if (p === '/team') return <Team />;

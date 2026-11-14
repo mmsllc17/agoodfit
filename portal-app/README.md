@@ -21,6 +21,7 @@ npm run build    # type-checks, then builds into ../portal (served by GitHub Pag
 | --- | --- |
 | `#/login`, `#/signup` | Log in and create a business account (new accounts start unverified on Pay as you go) |
 | `#/partners`, `#/partners/:id` | House account only: every partner, the featured-event review queue, verify, discontinue (offboard) and reactivate |
+| `#/analytics`, `#/analytics?view=:id` | House account only: platform analytics (members, partners and revenue, featured events) for 30 or 90 days, and the same view for any single partner or the house account |
 | `#/overview` | Stats, coming up, featured events, suggestions waiting, plan usage |
 | `#/events`, `#/events/:id` | All club and featured events by Upcoming, Drafts and review, Past. Event pages show results for featured events and details for club events |
 | `#/feature`, `#/feature/:id` | Feature an event: details, audience, package, live preview, submit for review or save a draft |
@@ -45,6 +46,7 @@ The login page lists sample logins for testing: GoodCo (super admin), Lumen Yoga
 - `src/store.tsx` holds all state in one place and saves it to `localStorage`. Each page changes data through `update()`.
 - `src/seed.ts` is the sample data, built relative to today so dates always look current.
 - `src/types.ts` mirrors the data model in the technical requirements: accounts, clubs, events, suggestions, team roles, the permission grid, activity, invoices.
+- `src/analytics.ts` builds the analytics numbers. Partner, featured-event and revenue figures come from portal data; member and app figures are sample series until the app's data is connected.
 - `src/lib.ts` has the shared rules: packages and prices, the default permission grid, reach estimate and date formatting.
 - Routing is a small hash router in `src/router.ts`, so the build runs on any static host.
 
