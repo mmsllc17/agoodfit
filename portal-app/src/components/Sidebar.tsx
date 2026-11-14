@@ -33,6 +33,7 @@ export function Sidebar({ path }: { path: string }) {
         ]
       : []),
     { href: '#/events', label: 'Events', icon: 'calendar', match: ['/events'] },
+    ...(!isAdmin ? [{ href: '#/analytics', label: 'Analytics', icon: 'chart' as IconName, match: ['/analytics'] }] : []),
     { href: '#/feature', label: 'Feature an event', icon: 'star', match: ['/feature'] },
     { href: '#/club', label: 'Club', icon: 'flag', match: ['/club'] },
     ...(club ? [{ href: '#/suggestions', label: 'Suggested rides', icon: 'inbox' as IconName, count: waiting, match: ['/suggestions'] }] : []),

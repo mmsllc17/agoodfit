@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BarChart, HBars, LineChart } from '../components/charts';
-import { Avatar, Card, Empty, Notice, PageHead, Stat } from '../components/ui';
+import { Avatar, Card, Notice, PageHead, Stat } from '../components/ui';
 import { useAccount } from '../store';
 import { go } from '../router';
 import { dayLabel, dayRange, DAY, featuredInRange, memberSeries, mergeShares, paidInRange, revenueByMonth, sampleSeries, totals, viewsPerDay } from '../analytics';
@@ -16,13 +16,33 @@ function delta(now: number, before: number, suffix = 'vs. prior period') {
 }
 
 export function Analytics({ query }: { query: URLSearchParams }) {
-  const { state, isAdmin } = useAccount();
+  const { state, isAdmin, account, can, readOnly, owner, club } = useAccount();
   const [range, setRange] = useState<Range>(30);
+  const rangePicker = (
+    <div className="seg" role="radiogroup" aria-label="Date range">
+      {([30, 90] as Range[]).map((r) => (
+        <button key={r} role="radio" aria-checked={range === r} className={'seg__btn' + (range === r ? ' seg__btn--on' : '')} onClick={() => setRange(r)}>
+          {r} days
+        </button>
+      ))}
+    </div>
+  );
+
+  // Partners see their own business only.
   if (!isAdmin) {
+    if (!can('data') && !readOnly) {
+      return (
+        <>
+          <PageHead title="Analytics" />
+          <Notice>Your role can’t see event data. {owner ? `Ask ${owner.name.split(' ')[0]} to change your permissions on the Team page.` : 'Ask an owner to change your permissions.'}</Notice>
+        </>
+      );
+    }
     return (
-      <Empty icon="lock" title="Analytics is for the GoodCo house account">
-        Your event results are on each event’s page under Events.
-      </Empty>
+      <>
+        <PageHead eyebrow={account.name} title="Analytics" sub={club ? 'How your featured events and club are doing.' : 'How your featured events are doing.'} action={rangePicker} />
+        <AccountAnalytics account={account} range={range} own />
+      </>
     );
   }
 
@@ -54,13 +74,7 @@ export function Analytics({ query }: { query: URLSearchParams }) {
                 ))}
               </optgroup>
             </select>
-            <div className="seg" role="radiogroup" aria-label="Date range">
-              {([30, 90] as Range[]).map((r) => (
-                <button key={r} role="radio" aria-checked={range === r} className={'seg__btn' + (range === r ? ' seg__btn--on' : '')} onClick={() => setRange(r)}>
-                  {r} days
-                </button>
-              ))}
-            </div>
+            {rangePicker}
           </div>
         }
       />
@@ -193,7 +207,7 @@ function PlatformAnalytics({ range }: { range: Range }) {
   );
 }
 
-function AccountAnalytics({ account, range }: { account: Account; range: Range }) {
+function AccountAnalytics({ account, range, own = false }: { account: Account; range: Range; own?: boolean }) {
   const { state } = useAccount();
   const labels = dayRange(range).map(dayLabel);
   const events = state.events.filter((e) => e.accountId === account.id);
@@ -213,16 +227,18 @@ function AccountAnalytics({ account, range }: { account: Account; range: Range }
 
   return (
     <>
-      <div className="row-gap">
-        <a className="link-strong" href="#/analytics">
-          ← All of A Good Fit
-        </a>
-        {account.kind === 'business' && (
-          <a className="link-strong" href={`#/partners/${account.id}`}>
-            Partner page
+      {!own && (
+        <div className="row-gap">
+          <a className="link-strong" href="#/analytics">
+            ← All of A Good Fit
           </a>
-        )}
-      </div>
+          {account.kind === 'business' && (
+            <a className="link-strong" href={`#/partners/${account.id}`}>
+              Partner page
+            </a>
+          )}
+        </div>
+      )}
       {account.status === 'offboarded' && <Notice icon="pause">Offboarded {account.offboardedAt ? fmtShort(account.offboardedAt) : ''}. Showing their history.</Notice>}
 
       <div className="stats">
@@ -317,10 +333,19 @@ function AccountAnalytics({ account, range }: { account: Account; range: Range }
             ))}
           </div>
         ) : (
-          <p className="muted card-pad">No featured events ran in this period.</p>
+          <div className="card-pad">
+            <p className="muted">No featured events ran in this period.</p>
+            {own && (
+              <a className="link-strong" href="#/feature">
+                Feature an event
+              </a>
+            )}
+          </div>
         )}
       </Card>
-      <p className="fineprint">All numbers are counts. Club member numbers are sample data until the app is connected.</p>
+      <p className="fineprint">
+        All numbers are counts{own ? '. You never see members’ names or profiles unless they choose to share them at check-in' : ''}.{club ? ' Club member numbers are sample data until the app is connected.' : ''}
+      </p>
     </>
   );
 }
