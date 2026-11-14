@@ -38,9 +38,11 @@ export function BarChart({ data, label, format = num }: { data: { label: string;
             <title>{`${d.label}: ${format(d.value)}`}</title>
             <rect x={x} y={base - h} width={bw} height={Math.max(h, 0)} rx="4" fill="var(--olive)" />
             <rect x={left + i * slot} y={0} width={slot} height={base} fill="transparent" />
-            <text x={x + bw / 2} y={194} textAnchor="middle" fontSize="12" fill="var(--ink-muted)">
-              {d.label}
-            </text>
+            {(data.length <= 8 || i === data.length - 1 || (i % Math.ceil(data.length / 8) === 0 && data.length - 1 - i > Math.ceil(data.length / 8) / 2)) && (
+              <text x={x + bw / 2} y={194} textAnchor="middle" fontSize="12" fill="var(--ink-muted)">
+                {d.label}
+              </text>
+            )}
           </g>
         );
       })}
@@ -87,7 +89,7 @@ export function LineChart({ data, label, lastLabel, format = num, fromZero = tru
           <g key={i}>
             <title>{`${data[i].label}: ${format(data[i].value)}`}</title>
             {data.length <= 16 ? <circle cx={p[0]} cy={p[1]} r="4.5" fill="var(--olive)" /> : <circle cx={p[0]} cy={p[1]} r="8" fill="transparent" />}
-            {showLabel && (i === data.length - 1 || data.length - 1 - i >= every / 2) && (
+            {showLabel && (i === data.length - 1 || data.length - 1 - i > every / 2) && (
               <text x={p[0]} y={210} textAnchor="middle" fontSize="12" fill="var(--ink-muted)">
                 {data[i].label}
               </text>
