@@ -161,6 +161,8 @@ export interface State {
   version: number;
   signedIn: boolean;
   accountId: string;
+  /** House account only: the partner it's viewing, read-only, for support. */
+  viewAs?: string;
   accounts: Account[];
   clubs: Club[];
   events: AppEvent[];

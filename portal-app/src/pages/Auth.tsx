@@ -47,6 +47,7 @@ export function Login() {
     update((d) => {
       d.signedIn = true;
       d.accountId = match.id;
+      d.viewAs = undefined;
     });
     go('/overview');
   };

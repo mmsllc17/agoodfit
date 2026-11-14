@@ -77,13 +77,24 @@ export function useStore() {
 
 /** Everything a page needs about the current account. */
 export function useAccount() {
-  const { state, update, toast } = useStore();
-  const account = state.accounts.find((a) => a.id === state.accountId) ?? state.accounts[0];
+  const { state, update: write, toast } = useStore();
+  const signedInAs = state.accounts.find((a) => a.id === state.accountId) ?? state.accounts[0];
+  const viewing = signedInAs.kind === 'house' && state.viewAs ? state.accounts.find((a) => a.id === state.viewAs) : undefined;
+  const readOnly = !!viewing;
+  const account = viewing ?? signedInAs;
+  /** In "View as partner", nothing can change. */
+  const update = (fn: Mutator) => {
+    if (readOnly) {
+      toast('Read-only. You’re viewing this portal as GoodCo.');
+      return;
+    }
+    write(fn);
+  };
   const club = state.clubs.find((c) => c.accountId === account.id);
   const team = state.team.filter((t) => t.accountId === account.id);
   const me = team.find((t) => t.id === account.meId) as TeamMember;
   const grid = state.perms[account.id];
-  const can = (p: Perm) => !!me && (me.role === 'Owner' || !!grid?.[p]?.[me.role as Exclude<Role, 'Owner'>]);
+  const can = (p: Perm) => !readOnly && !!me && (me.role === 'Owner' || !!grid?.[p]?.[me.role as Exclude<Role, 'Owner'>]);
   const events = state.events.filter((e) => e.accountId === account.id);
   const suggestions = state.suggestions.filter((s) => s.accountId === account.id);
   const owner = team.find((t) => t.role === 'Owner' && t.id !== me?.id);
@@ -104,7 +115,7 @@ export function useAccount() {
 
   const isAdmin = account.kind === 'house';
 
-  return { state, update, toast, account, club, team, me, can, events, suggestions, owner, log, isAdmin };
+  return { state, update, toast, account, club, team, me, can, events, suggestions, owner, log, isAdmin, readOnly, signedInAs };
 }
 
 export function createAccount(
@@ -233,4 +244,18 @@ export function reactivateAccount(d: Draft, id: string) {
   a.offboardNote = undefined;
   if (a.plan === 'Partner') a.plan = 'Pay as you go';
   addActivity(d, id, `reactivated ${a.name}`);
+}
+
+/** Start or stop viewing a partner's portal as the house account. Logged on both sides. */
+export function setViewAs(d: Draft, partnerId: string | undefined) {
+  const house = d.accounts.find((a) => a.id === d.accountId);
+  if (!house || house.kind !== 'house') return;
+  if (partnerId) {
+    const p = d.accounts.find((a) => a.id === partnerId);
+    const me = d.team.find((t) => t.id === house.meId);
+    if (!p) return;
+    addActivity(d, p.id, 'viewed your portal for support (read-only)', { who: house.name.split(' ')[0], initials: house.initials, color: house.color });
+    addActivity(d, house.id, `viewed ${p.name}’s portal for support`, { who: me ? me.name.split(' ')[0] : 'You', initials: me?.initials ?? 'ME', color: me?.color ?? '#6E8046' });
+  }
+  d.viewAs = partnerId;
 }

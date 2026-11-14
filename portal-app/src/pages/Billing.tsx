@@ -5,7 +5,7 @@ import { useAccount } from '../store';
 import { daysFromToday, fmtLong, fmtShort, money, PACKAGES, PARTNER_EVENTS_PER_MONTH, PARTNER_MONTHLY, uid } from '../lib';
 
 export function Billing() {
-  const { account, events, state, update, toast, log, can, owner } = useAccount();
+  const { account, events, state, update, toast, log, can, owner, readOnly } = useAccount();
   const [confirm, setConfirm] = useState<'upgrade' | 'downgrade' | null>(null);
   const invoices = state.invoices.filter((i) => i.accountId === account.id).sort((a, b) => +new Date(b.date) - +new Date(a.date));
   const canBill = can('billing');
@@ -53,7 +53,7 @@ export function Billing() {
   return (
     <>
       <PageHead eyebrow={account.name} title="Billing" />
-      {!canBill && (
+      {!canBill && !readOnly && (
         <Notice>
           You can see billing, but only owners can change it. {owner ? `Ask ${owner.name.split(' ')[0]} to make changes.` : ''}
         </Notice>

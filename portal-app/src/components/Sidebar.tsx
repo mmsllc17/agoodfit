@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Icon, type IconName } from './Icon';
 import { Avatar } from './ui';
-import { useAccount } from '../store';
+import { setViewAs, useAccount, useStore } from '../store';
 import { go } from '../router';
 
 interface Item {
@@ -13,7 +13,8 @@ interface Item {
 }
 
 export function Sidebar({ path }: { path: string }) {
-  const { state, update, account, club, suggestions, me, isAdmin } = useAccount();
+  const { state, account, club, suggestions, me, isAdmin, readOnly, signedInAs } = useAccount();
+  const { update } = useStore();
   const [open, setOpen] = useState(false);
   const waiting = suggestions.filter((s) => s.status === 'new').length;
   const partnerQueue = isAdmin
@@ -73,21 +74,43 @@ export function Sidebar({ path }: { path: string }) {
         </div>
 
         <div className="whoami">
-          <span>
-            Signed in as <b>{me?.name ?? 'you'}</b>
-          </span>
-          <button
-            type="button"
-            className="link"
-            onClick={() => {
-              update((d) => {
-                d.signedIn = false;
-              });
-              go('/login');
-            }}
-          >
-            Sign out
-          </button>
+          {readOnly ? (
+            <>
+              <span>
+                Viewing as <b>{signedInAs.name}</b> · Read-only
+              </span>
+              <button
+                type="button"
+                className="link"
+                onClick={() => {
+                  const id = account.id;
+                  update((d) => setViewAs(d, undefined));
+                  go(`/partners/${id}`);
+                }}
+              >
+                Exit partner view
+              </button>
+            </>
+          ) : (
+            <>
+              <span>
+                Signed in as <b>{me?.name ?? 'you'}</b>
+              </span>
+              <button
+                type="button"
+                className="link"
+                onClick={() => {
+                  update((d) => {
+                    d.signedIn = false;
+                    d.viewAs = undefined;
+                  });
+                  go('/login');
+                }}
+              >
+                Sign out
+              </button>
+            </>
+          )}
         </div>
       </div>
     </aside>

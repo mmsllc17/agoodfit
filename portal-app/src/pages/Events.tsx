@@ -107,7 +107,7 @@ export function Events({ query }: { query: URLSearchParams }) {
 }
 
 export function EventDetail({ id }: { id: string }) {
-  const { events, update, toast, can, log, account, isAdmin } = useAccount();
+  const { events, update, toast, can, log, account, isAdmin, readOnly } = useAccount();
   const e = events.find((x) => x.id === id);
   const [confirm, setConfirm] = useState<'cancel' | 'delete' | null>(null);
 
@@ -218,7 +218,7 @@ export function EventDetail({ id }: { id: string }) {
         </>
       )}
 
-      {e.kind === 'featured' && e.stats && (can('data') ? <Results e={e} /> : <Notice>Your role can’t see event data. Ask an owner or admin if you need it.</Notice>)}
+      {e.kind === 'featured' && e.stats && (can('data') || readOnly ? <Results e={e} /> : <Notice>Your role can’t see event data. Ask an owner or admin if you need it.</Notice>)}
 
       {e.kind === 'featured' && !e.stats && <FeaturedSummary e={e} />}
 
@@ -236,10 +236,12 @@ export function EventDetail({ id }: { id: string }) {
 
       {e.status === 'draft' && (
         <div className="row-gap">
-          <LinkButton href={`#/feature/${e.id}`}>Finish setup</LinkButton>
-          <Button kind="ghost" icon="trash" onClick={() => setConfirm('delete')}>
-            Delete draft
-          </Button>
+          {can('feature') && <LinkButton href={`#/feature/${e.id}`}>Finish setup</LinkButton>}
+          {can('feature') && (
+            <Button kind="ghost" icon="trash" onClick={() => setConfirm('delete')}>
+              Delete draft
+            </Button>
+          )}
         </div>
       )}
 

@@ -5,7 +5,7 @@ import { fmtWhen, uid } from '../lib';
 import type { Suggestion } from '../types';
 
 export function Suggestions() {
-  const { account, club, suggestions, state, update, toast, log, can } = useAccount();
+  const { account, club, suggestions, state, update, toast, log, can, readOnly } = useAccount();
   const [tab, setTab] = useState<'new' | 'done'>('new');
   const flags = state.flags.filter((f) => f.accountId === account.id);
 
@@ -81,7 +81,7 @@ export function Suggestions() {
         title="Suggested rides"
         sub={waiting.length ? `${waiting.length} waiting for review` : 'All caught up'}
       />
-      {!canApprove && <Notice>Your role can see suggestions but can’t approve them. Owners can change that on the Team page.</Notice>}
+      {!canApprove && !readOnly && <Notice>Your role can see suggestions but can’t approve them. Owners can change that on the Team page.</Notice>}
 
       <div className="cols">
         <div className="cols__main">

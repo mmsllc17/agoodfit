@@ -13,9 +13,9 @@ const NOTIFS: { id: keyof NotifPrefs; label: string; sub: string }[] = [
 ];
 
 export function Settings() {
-  const { account, me, state, update, toast, log } = useAccount();
+  const { account, me, state, update, toast, log, readOnly } = useAccount();
   const { reset } = useStore();
-  const canEdit = me?.role === 'Owner' || me?.role === 'Admin';
+  const canEdit = !readOnly && (me?.role === 'Owner' || me?.role === 'Admin');
   const [f, setF] = useState({ name: account.name, category: account.category, address: account.address, web: account.web, email: account.email });
   const [confirmReset, setConfirmReset] = useState(false);
   const prefs = state.notif[account.id];
@@ -40,7 +40,7 @@ export function Settings() {
       <div className="cols">
         <div className="cols__main">
           <Card title="Business profile" sub="Members see this on your featured events and club page.">
-            {!canEdit && <Notice>Only owners and admins can edit the profile.</Notice>}
+            {!canEdit && !readOnly && <Notice>Only owners and admins can edit the profile.</Notice>}
             <fieldset className="form" disabled={!canEdit}>
               <div className="grid-2">
                 <Field label="Business name">{(id) => <input id={id} className="input" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />}</Field>
@@ -96,6 +96,8 @@ export function Settings() {
           <Card title="Verification">
             <p className="muted">{account.verified ? `${account.name} is a verified business. Members see a Verified label on your events.` : 'We’re verifying your business. This usually takes 1 business day.'}</p>
           </Card>
+          {!readOnly && (
+          <>
           <Card title="Prototype">
             <p className="muted">This portal runs on sample data saved in your browser. Reset it to start over with the original accounts and events.</p>
             <Button kind="outline" size="sm" icon="refresh" onClick={() => setConfirmReset(true)}>
@@ -117,6 +119,8 @@ export function Settings() {
               Sign out
             </Button>
           </Card>
+          </>
+          )}
         </div>
       </div>
 

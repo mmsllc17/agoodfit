@@ -1,7 +1,8 @@
 import { Sidebar } from './components/Sidebar';
 import { Empty, LinkButton } from './components/ui';
 import { Icon } from './components/Icon';
-import { useStore } from './store';
+import { setViewAs, useStore } from './store';
+import { go } from './router';
 import { match, useRoute } from './router';
 import { Login, Signup } from './pages/Auth';
 import { Overview } from './pages/Overview';
@@ -42,8 +43,9 @@ function Page({ path }: { path: string }) {
 
 export function App() {
   const path = useRoute();
-  const { state, toasts } = useStore();
+  const { state, toasts, update } = useStore();
   const current = state.accounts.find((a) => a.id === state.accountId);
+  const viewing = current?.kind === 'house' && state.viewAs ? state.accounts.find((a) => a.id === state.viewAs) : undefined;
 
   let body;
   if (path === '/signup') body = <Signup />;
@@ -53,7 +55,25 @@ export function App() {
     body = (
       <div className="shell">
         <Sidebar path={path} />
-        <main className="main" key={state.accountId + path.split('?')[0]}>
+        <main className="main" key={(viewing?.id ?? state.accountId) + path.split('?')[0]}>
+          {viewing && (
+            <div className="viewas" role="status">
+              <Icon name="eye" size={18} />
+              <span className="grow">
+                Viewing <b>{viewing.name}</b> as GoodCo. Read-only, and logged in their activity.
+              </span>
+              <button
+                type="button"
+                className="viewas__exit"
+                onClick={() => {
+                  update((d) => setViewAs(d, undefined));
+                  go(`/partners/${viewing.id}`);
+                }}
+              >
+                Exit
+              </button>
+            </div>
+          )}
           <div className="main__inner">
             <Page path={path} />
           </div>

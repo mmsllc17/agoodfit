@@ -37,7 +37,7 @@ function ClubUpsell() {
 }
 
 function StartClub() {
-  const { account, update, toast, log, can, owner } = useAccount();
+  const { account, update, toast, log, can, owner, readOnly } = useAccount();
   const [f, setF] = useState({ name: account.name.replace(/ Studio$/, '') + ' Club', activity: ACTIVITIES[3], description: '', meetingSpot: account.address.split(',')[0] });
   const [tried, setTried] = useState(false);
   const ok = f.name.trim().length > 2 && f.description.trim().length > 10;
@@ -47,7 +47,7 @@ function StartClub() {
       <>
         <PageHead title="Club" />
         <Notice>
-          {account.name} doesn’t have a club yet. Only people who can edit the club page can start one. {owner ? `Ask ${owner.name.split(' ')[0]}.` : ''}
+          {account.name} doesn’t have a club yet.{readOnly ? '' : ` Only people who can edit the club page can start one. ${owner ? `Ask ${owner.name.split(' ')[0]}.` : ''}`}
         </Notice>
       </>
     );
@@ -275,7 +275,7 @@ function ClubHome({ canEdit }: { canEdit: boolean }) {
 }
 
 export function ClubEventForm({ id }: { id?: string }) {
-  const { account, club, team, events, update, toast, log, can, me } = useAccount();
+  const { account, club, team, events, update, toast, log, can, me, readOnly } = useAccount();
   const existing = id ? events.find((e) => e.id === id && e.kind === 'club') : undefined;
   const start = existing?.start ?? daysFromToday(7, '08:00');
   const leaders = team.filter((t) => !t.pending);
@@ -307,7 +307,7 @@ export function ClubEventForm({ id }: { id?: string }) {
     return (
       <>
         <PageHead back={{ href: '#/club', label: 'Club' }} title="Create club event" />
-        <Notice>Your role can’t create club events. Ask an owner or admin to change it on the Team page.</Notice>
+        <Notice>{readOnly ? 'Read-only. Partners create their own club events.' : 'Your role can’t create club events. Ask an owner or admin to change it on the Team page.'}</Notice>
       </>
     );
   }

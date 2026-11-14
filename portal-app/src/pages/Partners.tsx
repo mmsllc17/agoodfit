@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Avatar, Button, Card, Empty, Field, Modal, Notice, PageHead, Stat, StatusBadge } from '../components/ui';
-import { approveEvent, offboardAccount, reactivateAccount, sendBackEvent, useAccount, verifyAccount } from '../store';
+import { approveEvent, offboardAccount, reactivateAccount, sendBackEvent, setViewAs, useAccount, useStore, verifyAccount } from '../store';
+import { go } from '../router';
 import { fmtLong, fmtShort, fmtWhen, money, num, PARTNER_MONTHLY, pkgInfo } from '../lib';
 import type { Account, AppEvent } from '../types';
 
@@ -227,6 +228,7 @@ export function Partners() {
 
 export function PartnerDetail({ id }: { id: string }) {
   const { state, isAdmin, update, toast, log } = useAccount();
+  const store = useStore();
   const [offboarding, setOffboarding] = useState(false);
   const [reactivating, setReactivating] = useState(false);
   if (!isAdmin) return <NotAllowed />;
@@ -274,6 +276,18 @@ export function PartnerDetail({ id }: { id: string }) {
                 }}
               >
                 Verify business
+              </Button>
+            )}
+            {!off && (
+              <Button
+                kind="outline"
+                icon="eye"
+                onClick={() => {
+                  store.update((d) => setViewAs(d, a.id));
+                  go('/overview');
+                }}
+              >
+                View as partner
               </Button>
             )}
             {off ? (

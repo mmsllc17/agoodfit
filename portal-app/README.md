@@ -34,6 +34,8 @@ Each business has one account and only ever sees its own data. There is no accou
 
 The GoodCo Bike Club house account is the super admin. It runs its own club like any partner, and also gets a Partners area to see every business that signed up, verify new ones, approve or send back featured events, and discontinue (offboard) or reactivate a partner. Offboarding blocks the partner's sign-in, ends their live and upcoming events, and stops future charges.
 
+For support, the house account can **View as partner**: it opens that partner's portal exactly as they see it, read-only, under a banner with an Exit button. Every visit is logged in both accounts' activity. Nothing can be changed in this mode (`update()` is blocked and `can()` returns false).
+
 The login page lists sample logins for testing: GoodCo (super admin), Lumen Yoga Studio and Pedal & Pour (Partner plan), Ironside Strength (Pay as you go), Greenleaf Juice Bar (waiting for verification) and Tidewater Pilates (offboarded). Any password works.
 
 ## How it's built
@@ -53,7 +55,7 @@ Every write goes through `update()` in a page, next to a `log()` call for the ac
 - **Permissions.** The `can()` check in `useAccount()` hides or disables actions by role. The server has to check the same grid on every request.
 - **Partner limits.** Partner allows 4 featured events a month, and only Partner and house accounts can start a club.
 - **Charges.** Featured events are charged only after approval.
-- **Admin.** Only the house account can reach Partners. Verifying, approving, offboarding and reactivating must be admin-only on the server, and offboarding must revoke the partner's sessions.
+- **Admin.** Only the house account can reach Partners. Verifying, approving, offboarding and reactivating must be admin-only on the server, and offboarding must revoke the partner's sessions. View as partner must be read-only on the server too, and logged.
 - **Privacy.** Partners see counts only. Never member names, ages or dating status.
 
 Prices are placeholders while pricing is finalized.

@@ -9,10 +9,10 @@ import type { EditableRole, Role, TeamMember } from '../types';
 const DIRECTORY = ['Nia Patel', 'Camille Laurent', 'Devon Brooks', 'Priya Shah', 'Marcus Lee', 'Ana Souza', 'Ricky Torres', 'Jules Park', 'Omar Haddad', 'Lena Fischer'];
 
 export function Team() {
-  const { account, team, me, state, update, toast, log, can } = useAccount();
+  const { account, team, me, state, update, toast, log, can, readOnly } = useAccount();
   const [invite, setInvite] = useState(false);
   const [removing, setRemoving] = useState<TeamMember | null>(null);
-  const isOwner = me?.role === 'Owner';
+  const isOwner = !readOnly && me?.role === 'Owner';
   const canManage = can('team');
   const grid = state.perms[account.id];
   const activity = state.activity.filter((a) => a.accountId === account.id).slice(0, 8);
@@ -55,7 +55,7 @@ export function Team() {
           )
         }
       />
-      {!canManage && <Notice>Your role can see the team but can’t change it. Owners and admins manage the team.</Notice>}
+      {!canManage && !readOnly && <Notice>Your role can see the team but can’t change it. Owners and admins manage the team.</Notice>}
 
       <div className="cols">
         <div className="cols__main">

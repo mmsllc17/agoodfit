@@ -7,7 +7,7 @@ import { dateInput, estimateReach, fmtDay, fmtTime, INTERESTS, NEIGHBORHOODS, nu
 import type { AppEvent, PackageId } from '../types';
 
 export function Feature({ id }: { id?: string }) {
-  const { account, events, update, toast, can, log, owner } = useAccount();
+  const { account, events, update, toast, can, log, owner, readOnly } = useAccount();
   const existing = id ? events.find((e) => e.id === id && e.kind === 'featured') : undefined;
   const isHouse = account.kind === 'house';
   const usedThisMonth = events.filter((e) => e.kind === 'featured' && e.pkg === 'partner' && e.status !== 'draft' && new Date(e.featureStart ?? e.createdAt).getMonth() === new Date().getMonth()).length;
@@ -48,7 +48,7 @@ export function Feature({ id }: { id?: string }) {
       <>
         <PageHead back={{ href: '#/overview', label: 'Overview' }} title="Feature an event" />
         <Notice>
-          Your role can’t feature events on {account.name}. {owner ? `Ask ${owner.name.split(' ')[0]} to change your permissions on the Team page.` : 'Ask an owner to change your permissions.'}
+          {readOnly ? 'Read-only. Partners feature their own events.' : <>Your role can’t feature events on {account.name}. </>}{readOnly ? '' : owner ? `Ask ${owner.name.split(' ')[0]} to change your permissions on the Team page.` : 'Ask an owner to change your permissions.'}
         </Notice>
       </>
     );
