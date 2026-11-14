@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { HBars, LineChart } from '../components/charts';
 import { Icon } from '../components/Icon';
 import { Button, Card, Empty, LinkButton, Modal, Notice, PageHead, Stat, StatusBadge } from '../components/ui';
-import { useAccount } from '../store';
+import { approveEvent, useAccount } from '../store';
 import { go } from '../router';
 import { fmtLong, fmtShort, fmtTime, fmtWhen, money, num, pct, pkgInfo } from '../lib';
 import type { AppEvent } from '../types';
@@ -107,7 +107,7 @@ export function Events({ query }: { query: URLSearchParams }) {
 }
 
 export function EventDetail({ id }: { id: string }) {
-  const { events, update, toast, can, log, account } = useAccount();
+  const { events, update, toast, can, log, account, isAdmin } = useAccount();
   const e = events.find((x) => x.id === id);
   const [confirm, setConfirm] = useState<'cancel' | 'delete' | null>(null);
 
@@ -130,11 +130,9 @@ export function EventDetail({ id }: { id: string }) {
     });
 
   const approve = () => {
-    set((x) => {
-      x.status = 'live';
-      x.featureStart = new Date().toISOString();
-      x.stats = { viewsByDay: [420], taps: 38, rsvps: 4, checkins: 0, hoods: (x.hoods ?? ['Other']).slice(0, 3).map((h, i) => [h, [46, 32, 22][i] ?? 10]) as [string, number][], interests: (x.interests ?? ['Other']).slice(0, 3).map((h, i) => [h, [58, 27, 15][i] ?? 10]) as [string, number][] };
-      x.going = 4;
+    update((d) => {
+      approveEvent(d, e.id);
+      log(d, `approved ${e.title}`);
     });
     toast(`${e.title} is live`);
   };
@@ -209,12 +207,14 @@ export function EventDetail({ id }: { id: string }) {
             <b>In review.</b> We check every featured event for guideline fit, accurate details and a real business, usually within 1 business day.{' '}
             {account.kind === 'house' ? 'Featured events are free on the house account.' : 'You’re only charged once it’s approved.'}
           </Notice>
-          <div className="demo">
-            <span>Prototype only: skip the wait and see what an approved event looks like.</span>
-            <Button size="sm" kind="outline" onClick={approve}>
-              Approve now
-            </Button>
-          </div>
+          {isAdmin && (
+            <div className="demo">
+              <span>As the house account you review your own featured events too.</span>
+              <Button size="sm" onClick={approve}>
+                Approve
+              </Button>
+            </div>
+          )}
         </>
       )}
 
@@ -223,6 +223,16 @@ export function EventDetail({ id }: { id: string }) {
       {e.kind === 'featured' && !e.stats && <FeaturedSummary e={e} />}
 
       {e.kind === 'club' && <ClubSummary e={e} />}
+
+      {e.status === 'draft' && e.reviewNote && (
+        <Notice icon="flag" tone="gold">
+          <b>Sent back by the A Good Fit review team.</b> {e.reviewNote} Make the change, then submit it again.
+        </Notice>
+      )}
+
+      {e.status === 'canceled' && e.endedByOffboard && (
+        <Notice icon="pause">This event ended when the partner was offboarded.</Notice>
+      )}
 
       {e.status === 'draft' && (
         <div className="row-gap">

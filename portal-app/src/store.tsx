@@ -102,7 +102,9 @@ export function useAccount() {
     });
   };
 
-  return { state, update, toast, account, club, team, me, can, events, suggestions, owner, log };
+  const isAdmin = account.kind === 'house';
+
+  return { state, update, toast, account, club, team, me, can, events, suggestions, owner, log, isAdmin };
 }
 
 export function createAccount(
@@ -124,6 +126,8 @@ export function createAccount(
     web: input.web,
     email: input.email,
     meId,
+    joinedAt: new Date().toISOString(),
+    status: 'active',
   };
   d.accounts.push(acct);
   d.team.push({
@@ -156,4 +160,77 @@ export function newClub(accountId: string, patch: Partial<Club>): Club {
     members: 1,
     ...patch,
   };
+}
+
+/* ---------- A Good Fit admin actions (house account only) ---------- */
+
+const AGF = { who: 'A Good Fit', initials: 'GF', color: '#5E7233' };
+
+/** Add a line to any account's activity log. */
+export function addActivity(d: Draft, accountId: string, text: string, by: { who: string; initials: string; color: string } = AGF) {
+  d.activity.unshift({ id: uid('a'), accountId, ...by, text, at: new Date().toISOString() });
+}
+
+export function approveEvent(d: Draft, id: string) {
+  const x = d.events.find((e) => e.id === id);
+  if (!x) return;
+  x.status = 'live';
+  x.reviewNote = undefined;
+  x.featureStart = new Date().toISOString();
+  x.going = 4;
+  x.stats = {
+    viewsByDay: [420],
+    taps: 38,
+    rsvps: 4,
+    checkins: 0,
+    hoods: (x.hoods ?? ['Other']).slice(0, 3).map((h, i) => [h, [46, 32, 22][i] ?? 10]) as [string, number][],
+    interests: (x.interests ?? ['Other']).slice(0, 3).map((h, i) => [h, [58, 27, 15][i] ?? 10]) as [string, number][],
+  };
+  const pkgPrices: Record<string, number> = { spotlight: 49, boost: 129 };
+  const price = x.pkg ? pkgPrices[x.pkg] : 0;
+  if (price) d.invoices.push({ id: uid('in'), accountId: x.accountId, date: new Date().toISOString(), desc: `${x.pkg === 'boost' ? 'Boost' : 'Spotlight'} · ${x.title}`, amount: price, status: 'Paid' });
+  addActivity(d, x.accountId, `approved ${x.title}. It’s live in the app.`);
+}
+
+export function sendBackEvent(d: Draft, id: string, note: string) {
+  const x = d.events.find((e) => e.id === id);
+  if (!x) return;
+  x.status = 'draft';
+  x.reviewNote = note;
+  addActivity(d, x.accountId, `sent ${x.title} back for changes`);
+}
+
+export function verifyAccount(d: Draft, id: string) {
+  const a = d.accounts.find((x) => x.id === id);
+  if (!a) return;
+  a.verified = true;
+  addActivity(d, id, `verified ${a.name}`);
+}
+
+export function offboardAccount(d: Draft, id: string, reason: string, note: string) {
+  const a = d.accounts.find((x) => x.id === id);
+  if (!a || a.kind === 'house') return;
+  a.status = 'offboarded';
+  a.offboardedAt = new Date().toISOString();
+  a.offboardReason = reason;
+  a.offboardNote = note;
+  for (const e of d.events) {
+    if (e.accountId === id && ['live', 'review', 'scheduled'].includes(e.status)) {
+      e.status = 'canceled';
+      e.endedByOffboard = true;
+    }
+  }
+  d.invoices = d.invoices.filter((i) => !(i.accountId === id && i.status === 'Upcoming'));
+  a.renewsOn = undefined;
+}
+
+export function reactivateAccount(d: Draft, id: string) {
+  const a = d.accounts.find((x) => x.id === id);
+  if (!a) return;
+  a.status = 'active';
+  a.offboardedAt = undefined;
+  a.offboardReason = undefined;
+  a.offboardNote = undefined;
+  if (a.plan === 'Partner') a.plan = 'Pay as you go';
+  addActivity(d, id, `reactivated ${a.name}`);
 }

@@ -26,9 +26,14 @@ export interface Account {
   address: string;
   web: string;
   email: string;
-  /** Team member id of the signed-in person on this account. */
+  /** Team member id of the person who signs in to this account. */
   meId: string;
   renewsOn?: string;
+  joinedAt: string;
+  status: 'active' | 'offboarded';
+  offboardedAt?: string;
+  offboardReason?: string;
+  offboardNote?: string;
 }
 
 export interface Club {
@@ -84,6 +89,10 @@ export interface AppEvent {
   noDrop?: boolean;
   capacity?: number;
   fromSuggestionId?: string;
+  /** Set when the review team sends a featured event back for changes. */
+  reviewNote?: string;
+  /** Set when an event ended early because its partner was offboarded. */
+  endedByOffboard?: boolean;
 }
 
 export interface Suggestion {

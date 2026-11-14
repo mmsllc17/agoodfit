@@ -12,6 +12,8 @@ import { Suggestions } from './pages/Suggestions';
 import { Team } from './pages/Team';
 import { Billing } from './pages/Billing';
 import { Settings } from './pages/Settings';
+import { PartnerDetail, Partners } from './pages/Partners';
+import { Discontinued } from './pages/Auth';
 
 function Page({ path }: { path: string }) {
   const [p, qs] = path.split('?');
@@ -25,6 +27,8 @@ function Page({ path }: { path: string }) {
   if (p === '/club') return <ClubPage />;
   if (p === '/club/new') return <ClubEventForm />;
   if ((m = match('/club/edit/:id', p))) return <ClubEventForm id={m.id} />;
+  if (p === '/partners') return <Partners />;
+  if ((m = match('/partners/:id', p))) return <PartnerDetail id={m.id} />;
   if (p === '/suggestions') return <Suggestions />;
   if (p === '/team') return <Team />;
   if (p === '/billing') return <Billing />;
@@ -39,10 +43,12 @@ function Page({ path }: { path: string }) {
 export function App() {
   const path = useRoute();
   const { state, toasts } = useStore();
+  const current = state.accounts.find((a) => a.id === state.accountId);
 
   let body;
   if (path === '/signup') body = <Signup />;
-  else if (path === '/login' || !state.signedIn) body = <Login />;
+  else if (path === '/login' || !state.signedIn || !current) body = <Login />;
+  else if (current.status === 'offboarded') body = <Discontinued />;
   else
     body = (
       <div className="shell">

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Icon, type IconName } from './Icon';
 import { Avatar } from './ui';
-import { useAccount, useStore } from '../store';
+import { useAccount } from '../store';
 import { go } from '../router';
 
 interface Item {
@@ -13,15 +13,19 @@ interface Item {
 }
 
 export function Sidebar({ path }: { path: string }) {
-  const { state, update } = useStore();
-  const { account, club, suggestions, me } = useAccount();
+  const { state, update, account, club, suggestions, me, isAdmin } = useAccount();
   const [open, setOpen] = useState(false);
   const waiting = suggestions.filter((s) => s.status === 'new').length;
+  const partnerQueue = isAdmin
+    ? state.accounts.filter((a) => a.kind === 'business' && a.status === 'active' && !a.verified).length +
+      state.events.filter((e) => e.kind === 'featured' && e.status === 'review').length
+    : 0;
 
   useEffect(() => setOpen(false), [path]);
 
   const items: Item[] = [
     { href: '#/overview', label: 'Overview', icon: 'overview', match: ['/overview'] },
+    ...(isAdmin ? [{ href: '#/partners', label: 'Partners', icon: 'store' as IconName, count: partnerQueue, match: ['/partners'] }] : []),
     { href: '#/events', label: 'Events', icon: 'calendar', match: ['/events'] },
     { href: '#/feature', label: 'Feature an event', icon: 'star', match: ['/feature'] },
     { href: '#/club', label: 'Club', icon: 'flag', match: ['/club'] },
@@ -33,20 +37,12 @@ export function Sidebar({ path }: { path: string }) {
 
   const active = (it: Item) => it.match.some((m) => path === m || path.startsWith(m + '/'));
 
-  const switchTo = (id: string) => {
-    update((d) => {
-      d.accountId = id;
-    });
-    setOpen(false);
-    go('/overview');
-  };
-
   return (
     <aside className={'sidebar' + (open ? ' sidebar--open' : '')}>
       <div className="sidebar__top">
-        <a href="#/overview" className="brand" onClick={() => setOpen(false)}>
+        <a href="#/overview" className="brand">
           <span className="brand__name">A Good Fit</span>
-          <span className="brand__sub">for Business</span>
+          <span className="brand__sub">{isAdmin ? 'Admin' : 'for Business'}</span>
         </a>
         <button type="button" className="icon-btn sidebar__menu" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => setOpen(!open)}>
           <Icon name={open ? 'x' : 'menu'} size={20} />
@@ -56,7 +52,7 @@ export function Sidebar({ path }: { path: string }) {
       <div className="sidebar__body">
         <nav aria-label="Portal" className="nav">
           {items.map((it) => (
-            <a key={it.href} href={it.href} className={'nav__item' + (active(it) ? ' nav__item--on' : '')} aria-current={active(it) ? 'page' : undefined} onClick={() => setOpen(false)}>
+            <a key={it.href} href={it.href} className={'nav__item' + (active(it) ? ' nav__item--on' : '')} aria-current={active(it) ? 'page' : undefined}>
               <Icon name={it.icon} />
               <span>{it.label}</span>
               {!!it.count && <span className="nav__count">{it.count}</span>}
@@ -66,22 +62,14 @@ export function Sidebar({ path }: { path: string }) {
 
         <div className="sidebar__spacer" />
 
-        <div className="accounts">
-          <div className="accounts__label">Accounts</div>
-          {state.accounts.map((a) => (
-            <button type="button" key={a.id} className={'acct' + (a.id === account.id ? ' acct--on' : '')} aria-current={a.id === account.id} onClick={() => switchTo(a.id)}>
-              <Avatar initials={a.initials} color={a.color} size={34} square />
-              <span className="acct__text">
-                <span className="acct__name">{a.name}</span>
-                <span className={'acct__meta' + (a.verified && a.kind === 'business' ? ' acct__meta--ok' : '')}>
-                  {a.kind === 'house' ? 'Parent company · House account' : a.verified ? `✓ Verified · ${a.plan} plan` : 'Verification pending'}
-                </span>
-              </span>
-            </button>
-          ))}
-          <a className="accounts__add" href="#/signup" onClick={() => setOpen(false)}>
-            <Icon name="plus" size={16} /> Add a business
-          </a>
+        <div className="acct acct--on acct--static">
+          <Avatar initials={account.initials} color={account.color} size={34} square />
+          <span className="acct__text">
+            <span className="acct__name">{account.name}</span>
+            <span className={'acct__meta' + (account.verified && account.kind === 'business' ? ' acct__meta--ok' : '')}>
+              {isAdmin ? 'Parent company · Super admin' : account.verified ? `✓ Verified · ${account.plan === 'Partner' ? 'Partner plan' : 'Pay as you go'}` : 'Verification pending'}
+            </span>
+          </span>
         </div>
 
         <div className="whoami">

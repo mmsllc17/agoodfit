@@ -38,18 +38,26 @@ export function Login() {
   const [pw, setPw] = useState('');
   const [err, setErr] = useState('');
 
+  const signIn = (address: string) => {
+    const match = state.accounts.find((a) => a.email.toLowerCase() === address.trim().toLowerCase());
+    if (!match) {
+      setErr('We couldn’t find a business account with that email.');
+      return;
+    }
+    update((d) => {
+      d.signedIn = true;
+      d.accountId = match.id;
+    });
+    go('/overview');
+  };
+
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!email.includes('@') || pw.length < 1) {
       setErr('Enter your work email and password.');
       return;
     }
-    const match = state.accounts.find((a) => a.email.toLowerCase() === email.trim().toLowerCase());
-    update((d) => {
-      d.signedIn = true;
-      if (match) d.accountId = match.id;
-    });
-    go('/overview');
+    signIn(email);
   };
 
   return (
@@ -59,17 +67,37 @@ export function Login() {
           <h2>Log in</h2>
           <p className="muted">Welcome back. Your events and club are where you left them.</p>
         </div>
-        <Field label="Work email">{(id) => <input id={id} className="input" type="email" autoComplete="email" placeholder="you@lumenyoga.com" value={email} onChange={(e) => setEmail(e.target.value)} />}</Field>
+        <Field label="Work email">{(id) => <input id={id} className="input" type="email" autoComplete="email" placeholder="you@lumenyoga.com" value={email} onChange={(e) => { setEmail(e.target.value); setErr(''); }} />}</Field>
         <Field label="Password" error={err}>
-          {(id) => <input id={id} className="input" type="password" autoComplete="current-password" placeholder="Your password" value={pw} onChange={(e) => setPw(e.target.value)} />}
+          {(id) => <input id={id} className="input" type="password" autoComplete="current-password" placeholder="Your password" value={pw} onChange={(e) => { setPw(e.target.value); setErr(''); }} />}
         </Field>
         <Button type="submit" size="lg">
           Log in
         </Button>
-        <p className="muted small">This is a prototype, so any email and password will work.</p>
         <p className="muted">
           New to A Good Fit for Business? <a href="#/signup">Create an account</a>
         </p>
+
+        <div className="samples">
+          <div className="samples__head">
+            <b>Prototype sample logins</b>
+            <span className="muted small">Tap one to sign in. Any password works.</span>
+          </div>
+          {state.accounts.map((a) => (
+            <button type="button" key={a.id} className="samples__row" onClick={() => signIn(a.email)}>
+              <span className="avatar avatar--sq" style={{ width: 32, height: 32, background: a.color, fontSize: 12 }} aria-hidden="true">
+                {a.initials}
+              </span>
+              <span className="grow">
+                <span className="row-title">{a.name}</span>
+                <span className="row-meta">{a.email}</span>
+              </span>
+              <span className={'tag ' + (a.kind === 'house' ? 'tag--olive' : a.status === 'offboarded' ? 'tag--muted' : !a.verified ? 'tag--gold' : 'tag--muted')}>
+                {a.kind === 'house' ? 'Super admin' : a.status === 'offboarded' ? 'Offboarded' : !a.verified ? 'Pending' : a.plan === 'Partner' ? 'Partner' : 'Pay as you go'}
+              </span>
+            </button>
+          ))}
+        </div>
       </form>
     </AuthLayout>
   );
@@ -156,6 +184,37 @@ export function Signup() {
           Already have an account? <a href="#/login">Log in</a>
         </p>
       </form>
+    </AuthLayout>
+  );
+}
+
+export function Discontinued() {
+  const { state, update } = useStore();
+  const a = state.accounts.find((x) => x.id === state.accountId);
+  return (
+    <AuthLayout>
+      <div className="auth__form">
+        <div>
+          <h2>{a?.name} is no longer on A Good Fit for Business</h2>
+          <p className="muted">
+            This account was discontinued{a?.offboardedAt ? ` on ${new Date(a.offboardedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : ''}. Its events have ended and there are no more charges.
+          </p>
+        </div>
+        <p>We sent the details to {a?.email}. If you think this is a mistake, reply to that email and our team will take a look.</p>
+        <div>
+          <Button
+            kind="secondary"
+            onClick={() => {
+              update((d) => {
+                d.signedIn = false;
+              });
+              go('/login');
+            }}
+          >
+            Back to log in
+          </Button>
+        </div>
+      </div>
     </AuthLayout>
   );
 }

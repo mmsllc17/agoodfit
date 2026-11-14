@@ -103,7 +103,7 @@ export function Feature({ id }: { id?: string }) {
     };
     update((d) => {
       const x = d.events.find((e) => e.id === evId);
-      if (x) Object.assign(x, fields);
+      if (x) Object.assign(x, fields, status === 'review' ? { reviewNote: undefined } : {});
       else d.events.push({ ...(fields as AppEvent), id: evId, accountId: account.id, kind: 'featured', going: 0, createdAt: new Date().toISOString() });
       log(d, status === 'review' ? `submitted ${fields.title} for review` : `saved a draft, ${fields.title}`);
     });
@@ -119,6 +119,11 @@ export function Feature({ id }: { id?: string }) {
   return (
     <>
       <PageHead back={{ href: '#/overview', label: 'Overview' }} title={existing ? 'Finish your featured event' : 'Feature an event'} />
+      {existing?.reviewNote && (
+        <Notice icon="flag" tone="gold">
+          <b>Sent back by the A Good Fit review team.</b> {existing.reviewNote}
+        </Notice>
+      )}
 
       <div className="cols">
         <div className="cols__main">

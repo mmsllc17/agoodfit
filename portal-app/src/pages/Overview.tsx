@@ -47,7 +47,10 @@ function change(now: number, before: number) {
 }
 
 export function Overview() {
-  const { account, club, me, events, suggestions, can } = useAccount();
+  const { account, club, me, events, suggestions, can, isAdmin, state } = useAccount();
+  const pendingPartners = state.accounts.filter((a) => a.kind === 'business' && a.status === 'active' && !a.verified).length;
+  const reviewQueue = state.events.filter((e) => e.kind === 'featured' && e.status === 'review').length;
+  const activePartners = state.accounts.filter((a) => a.kind === 'business' && a.status === 'active').length;
   const featured = events.filter((e) => e.kind === 'featured');
   const now = Date.now();
   const cur = sumStats(featured, now - 30 * DAY, now + DAY);
@@ -204,6 +207,20 @@ export function Overview() {
         </div>
 
         <div className="cols__side">
+          {isAdmin && (
+            <Card title="Partners" sub={`${activePartners} active businesses`} action={<a className="link-strong" href="#/partners">Open</a>}>
+              <div className="mini-list">
+                <a className="mini-list__row mini-list__row--split" href="#/partners">
+                  <span className="row-title">Featured events to review</span>
+                  <span className={'tag ' + (reviewQueue ? 'tag--gold' : 'tag--muted')}>{reviewQueue}</span>
+                </a>
+                <a className="mini-list__row mini-list__row--split" href="#/partners">
+                  <span className="row-title">Businesses to verify</span>
+                  <span className={'tag ' + (pendingPartners ? 'tag--gold' : 'tag--muted')}>{pendingPartners}</span>
+                </a>
+              </div>
+            </Card>
+          )}
           {club && waiting.length > 0 && (
             <Card title="Suggested rides" sub={`${waiting.length} waiting for review`} action={<a className="link-strong" href="#/suggestions">Review</a>}>
               <div className="mini-list">

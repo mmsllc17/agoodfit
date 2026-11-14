@@ -20,6 +20,7 @@ npm run build    # type-checks, then builds into ../portal (served by GitHub Pag
 | Route | Page |
 | --- | --- |
 | `#/login`, `#/signup` | Log in and create a business account (new accounts start unverified on Pay as you go) |
+| `#/partners`, `#/partners/:id` | House account only: every partner, the featured-event review queue, verify, discontinue (offboard) and reactivate |
 | `#/overview` | Stats, coming up, featured events, suggestions waiting, plan usage |
 | `#/events`, `#/events/:id` | All club and featured events by Upcoming, Drafts and review, Past. Event pages show results for featured events and details for club events |
 | `#/feature`, `#/feature/:id` | Feature an event: details, audience, package, live preview, submit for review or save a draft |
@@ -29,10 +30,11 @@ npm run build    # type-checks, then builds into ../portal (served by GitHub Pag
 | `#/billing` | Plan, upgrade or switch, invoices. House account has no billing |
 | `#/settings` | Business profile, notifications, reset sample data |
 
-Two sample accounts sit in the account switcher:
+Each business has one account and only ever sees its own data. There is no account switcher.
 
-- **Lumen Yoga Studio:** an outside business on the Partner plan. You're signed in as an Admin, so billing is read-only, which shows permissions at work.
-- **GoodCo Bike Club:** the house account with the club, suggestions and full team. You're signed in as an Owner.
+The GoodCo Bike Club house account is the super admin. It runs its own club like any partner, and also gets a Partners area to see every business that signed up, verify new ones, approve or send back featured events, and discontinue (offboard) or reactivate a partner. Offboarding blocks the partner's sign-in, ends their live and upcoming events, and stops future charges.
+
+The login page lists sample logins for testing: GoodCo (super admin), Lumen Yoga Studio and Pedal & Pour (Partner plan), Ironside Strength (Pay as you go), Greenleaf Juice Bar (waiting for verification) and Tidewater Pilates (offboarded). Any password works.
 
 ## How it's built
 
@@ -51,7 +53,7 @@ Every write goes through `update()` in a page, next to a `log()` call for the ac
 - **Permissions.** The `can()` check in `useAccount()` hides or disables actions by role. The server has to check the same grid on every request.
 - **Partner limits.** Partner allows 4 featured events a month, and only Partner and house accounts can start a club.
 - **Charges.** Featured events are charged only after approval.
-- **Review.** The "Approve now" button on an event in review is a prototype shortcut. In production, approval comes from the internal review queue.
+- **Admin.** Only the house account can reach Partners. Verifying, approving, offboarding and reactivating must be admin-only on the server, and offboarding must revoke the partner's sessions.
 - **Privacy.** Partners see counts only. Never member names, ages or dating status.
 
 Prices are placeholders while pricing is finalized.
